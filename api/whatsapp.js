@@ -1,5 +1,15 @@
 const twilio = require('twilio');
 
+// Função para parsear form data
+function parseFormData(body) {
+  const params = new URLSearchParams(body);
+  const data = {};
+  for (const [key, value] of params) {
+    data[key] = value;
+  }
+  return data;
+}
+
 module.exports = async (req, res) => {
   console.log('🔔 WEBHOOK CHAMADO - Método:', req.method);
   
@@ -15,36 +25,32 @@ module.exports = async (req, res) => {
   }
 
   try {
-    console.log('📦 DADOS RECEBIDOS:', JSON.stringify(req.body, null, 2));
+    console.log('📦 Content-Type:', req.headers['content-type']);
+    console.log('📦 Body raw:', req.body);
     
-    const body = req.body || {};
-    const mensagem = (body.Body || '').toLowerCase().trim();
-    const from = body.From || '';
+    // PARSE CORRETO DOS DADOS DO TWILIO
+    let bodyData = {};
+    
+    if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
+      bodyData = parseFormData(req.body);
+    } else {
+      bodyData = req.body;
+    }
+    
+    console.log('📦 DADOS PARSED:', bodyData);
+    
+    const mensagem = (bodyData.Body || '').toLowerCase().trim();
+    const from = bodyData.From || '';
 
     console.log('👤 De:', from, '| Mensagem:', mensagem);
 
-    // VERIFICA DADOS MÍNIMOS
-    if (!from || !mensagem) {
-      console.log('❌ Dados incompletos - From ou Body vazios');
+    if (!from) {
+      console.log('❌ From vazio');
       res.setHeader('Content-Type', 'text/xml');
       return res.send('<?xml version="1.0"?><Response></Response>');
     }
 
-    // VERIFICA CREDENCIAIS
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    
-    console.log('🔑 Credenciais - SID:', accountSid ? '✅' : '❌', 'Token:', authToken ? '✅' : '❌');
-    
-    if (!accountSid || !authToken) {
-      console.log('❌ CREDENCIAIS TWILIO NÃO CONFIGURADAS');
-      res.setHeader('Content-Type', 'text/xml');
-      return res.send('<?xml version="1.0"?><Response></Response>');
-    }
-
-    const client = twilio(accountSid, authToken);
-
-    // LÓGICA DE RESPOSTA
+    // RESPOSTA VIA TWIML (DIRETA - SEM API)
     let resposta = `🔌 *HL SERVIÇOS* - Seja bem-vindo!
 
 1️⃣ - FAZER ORÇAMENTO
@@ -100,25 +106,27 @@ Rua, número, bairro, cidade
 Obrigado! 🛠️`;
     }
 
-    console.log('📤 ENVIANDO RESPOSTA:', resposta.substring(0, 50) + '...');
-    
-    // ENVIA MENSAGEM VIA TWILIO API
-    await client.messages.create({
-      body: resposta,
-      from: 'whatsapp:+14155238886',
-      to: from
-    });
+    console.log('📤 RESPOSTA:', resposta);
 
-    console.log('✅ RESPOSTA ENVIADA COM SUCESSO para:', from);
-    
+    // TWIML RESPONSE
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${resposta}</Message>
+</Response>`;
+
     res.setHeader('Content-Type', 'text/xml');
-    res.send('<?xml version="1.0"?><Response></Response>');
+    res.send(twiml);
+    console.log('✅ RESPOSTA ENVIADA VIA TWIML');
 
   } catch (error) {
-    console.error('❌ ERRO CRÍTICO:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('❌ ERRO CRÍTICO:', error);
+    
+    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>🔌 HL SERVIÇOS - Em instantes retornamos!</Message>
+</Response>`;
     
     res.setHeader('Content-Type', 'text/xml');
-    res.send('<?xml version="1.0"?><Response></Response>');
+    res.send(errorTwiml);
   }
 };
