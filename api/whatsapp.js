@@ -1,11 +1,12 @@
 const twilio = require('twilio');
 
 module.exports = async (req, res) => {
-  // PERMITE REQUISIÇÕES POST E GET (para teste)
+  console.log('🔔 WEBHOOK CHAMADO - Método:', req.method);
+  
   if (req.method === 'GET') {
     return res.status(200).json({ 
-      status: '✅ HL Serviços ONLINE',
-      message: 'Webhook WhatsApp funcionando'
+      status: '✅ HL Serviços ONLINE - Webhook funcionando',
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -14,35 +15,36 @@ module.exports = async (req, res) => {
   }
 
   try {
-    console.log('📱 Webhook chamado pelo Twilio');
+    console.log('📦 DADOS RECEBIDOS:', JSON.stringify(req.body, null, 2));
     
-    // EXTRAI DADOS DO TWILIO
     const body = req.body || {};
     const mensagem = (body.Body || '').toLowerCase().trim();
     const from = body.From || '';
 
-    console.log('Mensagem:', mensagem, 'De:', from);
+    console.log('👤 De:', from, '| Mensagem:', mensagem);
 
-    // SE NÃO VEIO DADOS, RETORNA SUCESSO
-    if (!from) {
-      console.log('❌ Dados incompletos do Twilio');
+    // VERIFICA DADOS MÍNIMOS
+    if (!from || !mensagem) {
+      console.log('❌ Dados incompletos - From ou Body vazios');
       res.setHeader('Content-Type', 'text/xml');
       return res.send('<?xml version="1.0"?><Response></Response>');
     }
 
-    // INICIALIZA TWILIO CLIENT
+    // VERIFICA CREDENCIAIS
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     
+    console.log('🔑 Credenciais - SID:', accountSid ? '✅' : '❌', 'Token:', authToken ? '✅' : '❌');
+    
     if (!accountSid || !authToken) {
-      console.log('❌ Credenciais Twilio não configuradas');
+      console.log('❌ CREDENCIAIS TWILIO NÃO CONFIGURADAS');
       res.setHeader('Content-Type', 'text/xml');
       return res.send('<?xml version="1.0"?><Response></Response>');
     }
 
     const client = twilio(accountSid, authToken);
 
-    // RESPOSTAS DO BOT
+    // LÓGICA DE RESPOSTA
     let resposta = `🔌 *HL SERVIÇOS* - Seja bem-vindo!
 
 1️⃣ - FAZER ORÇAMENTO
@@ -98,24 +100,24 @@ Rua, número, bairro, cidade
 Obrigado! 🛠️`;
     }
 
-    // ENVIA RESPOSTA VIA TWILIO API
-    console.log('📤 Enviando resposta para:', from);
+    console.log('📤 ENVIANDO RESPOSTA:', resposta.substring(0, 50) + '...');
+    
+    // ENVIA MENSAGEM VIA TWILIO API
     await client.messages.create({
       body: resposta,
       from: 'whatsapp:+14155238886',
       to: from
     });
 
-    console.log('✅ Resposta enviada com sucesso');
+    console.log('✅ RESPOSTA ENVIADA COM SUCESSO para:', from);
     
-    // RETORNA RESPOSTA PARA TWILIO
     res.setHeader('Content-Type', 'text/xml');
     res.send('<?xml version="1.0"?><Response></Response>');
 
   } catch (error) {
-    console.error('❌ ERRO CRÍTICO:', error);
+    console.error('❌ ERRO CRÍTICO:', error.message);
+    console.error('Stack:', error.stack);
     
-    // RETORNA SUCESSO MESMO COM ERRO (para não quebrar webhook)
     res.setHeader('Content-Type', 'text/xml');
     res.send('<?xml version="1.0"?><Response></Response>');
   }
