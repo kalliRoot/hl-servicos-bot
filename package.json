@@ -1,0 +1,12 @@
+{
+  "name": "hl-servicos-bot",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp para HL Serviços",
+  "main": "api/whatsapp.js",
+  "scripts": {
+    "dev": "node api/whatsapp.js"
+  },
+  "dependencies": {
+    "twilio": "^4.0.0"
+  }
+}
