@@ -1,12 +1,7 @@
 {
-  "name": "hl-servicos-completo",
-  "version": "1.0.0",
-  "scripts": {
-    "start": "node api/bot.js",
-    "dev": "node api/bot.js"
-  },
+  "name": "hl-servicos-painel",
+  "version": "1.0.0", 
   "dependencies": {
-    "venom-bot": "^4.3.7",
     "express": "^4.18.0"
   }
 }
