@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HL Serviços - Agendamento</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; padding: 20px; }
+        .header { background: #25D366; color: white; padding: 25px; text-align: center; border-radius: 15px 15px 0 0; margin-bottom: 20px; }
+        .servico { background: white; padding: 20px; margin: 15px 0; border-radius: 12px; cursor: pointer; border-left: 5px solid #25D366; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; }
+        .servico:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .servico h3 { color: #25D366; margin-bottom: 8px; }
+        .whatsapp-btn { background: #25D366; color: white; padding: 18px; text-align: center; border-radius: 12px; margin: 25px 0; text-decoration: none; display: block; font-weight: bold; font-size: 18px; transition: background 0.3s; }
+        .whatsapp-btn:hover { background: #128C7E; }
+        .qr-code { text-align: center; padding: 25px; background: white; border-radius: 12px; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-agendamento { background: white; padding: 25px; border-radius: 12px; margin: 20px 0; display: none; }
+        .form-input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .form-btn { background: #25D366; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔌 HL SERVIÇOS</h1>
+            <p>Agendamento Rápido & Orçamento Grátis</p>
+        </div>
+
+        <div id="lista-servicos">
+            <!-- Serviços carregados via JavaScript -->
+        </div>
+
+        <a href="https://wa.me/5516996259672?text=Olá! Gostaria de informações sobre os serviços da HL Serviços" 
+           class="whatsapp-btn" target="_blank">
+            📱 Falar Direto no WhatsApp
+        </a>
+
+        <div class="qr-code">
+            <h3>📲 Escaneie para Agendar</h3>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://wa.me/5516996259672?text=Olá! Gostaria de agendar um serviço da HL Serviços" 
+                 alt="QR Code WhatsApp" width="200" height="200">
+            <p style="margin-top: 15px; color: #666;">Aponte a câmera do celular</p>
+        </div>
+
+        <div id="form-agendamento" class="form-agendamento">
+            <h3>📅 Agendar Serviço</h3>
+            <form id="agendamento-form">
+                <input type="text" class="form-input" placeholder="Seu nome" required>
+                <input type="tel" class="form-input" placeholder="Seu WhatsApp" required>
+                <input type="text" class="form-input" placeholder="Endereço completo" required>
+                <input type="text" class="form-input" placeholder="Data preferencial" required>
+                <button type="submit" class="form-btn">✅ Enviar Agendamento</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Carregar serviços
+        fetch('/api/servicos')
+            .then(response => response.json())
+            .then(servicos => {
+                const container = document.getElementById('lista-servicos');
+                servicos.forEach(servico => {
+                    const div = document.createElement('div');
+                    div.className = 'servico';
+                    div.innerHTML = `
+                        <h3>${servico.emoji} ${servico.name}</h3>
+                        <p>${servico.desc}</p>
+                    `;
+                    div.onclick = () => abrirFormulario(servico);
+                    container.appendChild(div);
+                });
+            });
+
+        function abrirFormulario(servico) {
+            document.getElementById('lista-servicos').classList.add('hidden');
+            document.getElementById('form-agendamento').style.display = 'block';
+            
+            // Preencher serviço selecionado
+            document.querySelector('#form-agendamento h3').textContent = `📅 Agendar: ${servico.name}`;
+            
+            // Configurar formulário
+            document.getElementById('agendamento-form').onsubmit = (e) => {
+                e.preventDefault();
+                enviarAgendamento(servico.name);
+            };
+        }
+
+        function enviarAgendamento(servico) {
+            const formData = {
+                servico: servico,
+                nome: document.querySelector('input[placeholder="Seu nome"]').value,
+                telefone: document.querySelector('input[placeholder="Seu WhatsApp"]').value,
+                endereco: document.querySelector('input[placeholder="Endereço completo"]').value,
+                data: document.querySelector('input[placeholder="Data preferencial"]').value
+            };
+
+            fetch('/api/agendar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('✅ Agendamento enviado! Entraremos em contato em breve.');
+                window.location.href = '/';
+            });
+        }
+    </script>
+</body>
+</html>
